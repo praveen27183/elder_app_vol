@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import api from '../../../services/api';
 import {
     Search, MapPin, Phone, Star, Filter, Shield,
     CheckCircle, Clock, AlertTriangle, User, Grid, List, X, Mail, Calendar,
@@ -7,7 +8,7 @@ import {
 
 // --- Types ---
 type Volunteer = {
-    id: number;
+    id: string | number;
     name: string;
     role: string; // e.g., "Senior Caregiver"
     phone: string;
@@ -28,9 +29,9 @@ type Volunteer = {
 };
 
 type Issue = {
-    id: number;
+    id: string | number;
     volunteerName: string;
-    volunteerId: number;
+    volunteerId: string | number;
     type: 'Behavior' | 'Missed Task' | 'Policy Violation' | 'Other';
     severity: 'Low' | 'Medium' | 'Critical';
     description: string;
@@ -38,289 +39,6 @@ type Issue = {
     date: string;
     status: 'Open' | 'Resolved';
 };
-
-// --- Mock Data ---
-const ISSUES: Issue[] = [
-    {
-        id: 1,
-        volunteerName: "Arun Vijay",
-        volunteerId: 3,
-        type: "Missed Task",
-        severity: "Medium",
-        description: "Failed to show up for a scheduled grocery run for Mrs. Lakshmi.",
-        reportedBy: "Lakshmi (Elder)",
-        date: "2 days ago",
-        status: "Open"
-    },
-    {
-        id: 2,
-        volunteerName: "Senthil Kumar",
-        volunteerId: 1,
-        type: "Policy Violation",
-        severity: "Low",
-        description: "Did not wear the volunteer ID badge during the visit.",
-        reportedBy: "System Audit",
-        date: "5 days ago",
-        status: "Resolved"
-    },
-    {
-        id: 3,
-        volunteerName: "Karthik R",
-        volunteerId: 5,
-        type: "Behavior",
-        severity: "Critical",
-        description: "Rude behavior reported by the elder's family member during a call.",
-        reportedBy: "reenish (Family)",
-        date: "1 week ago",
-        status: "Open"
-    },
-    {
-        id: 4,
-        volunteerName: "Divya Ramesh",
-        volunteerId: 2,
-        type: "Other",
-        severity: "Low",
-        description: "Requested last-minute cancellation for a non-emergency reason.",
-        reportedBy: "Dispatch Team",
-        date: "2 weeks ago",
-        status: "Resolved"
-    },
-    {
-        id: 5,
-        volunteerName: "Manoj K",
-        volunteerId: 6,
-        type: "Missed Task",
-        severity: "Medium",
-        description: "Arrived 45 minutes late for a medical appointment pickup.",
-        reportedBy: "Kannan (Elder)",
-        date: "3 weeks ago",
-        status: "Resolved"
-    }
-];
-
-// --- Mock Data ---
-const VOLUNTEERS: Volunteer[] = [
-    {
-        id: 1,
-        name: "Senthil Kumar",
-        role: "Medical Assistant",
-        phone: "+91 98765 43210",
-        email: "senthil.k@example.com",
-        service: "Transport",
-        status: "Available",
-        location: "Anna Nagar",
-        workingAt: "TCS, Siruseri",
-        rating: 4.9,
-        tasksCompleted: 45,
-        verified: "Verified",
-        skills: ["Two-Wheeler", "First Aid", "Tamil", "English"],
-        joinedDate: "Jan 15, 2024",
-        lastSeen: "2 mins ago",
-        avatarColor: "bg-emerald-100 text-emerald-700",
-        bio: "Passionate about helping elders with transportation and medical visits. I have a two-wheeler and free on weekends.",
-        documents: [{ name: "Driving License", status: "Verified" }, { name: "ID Proof", status: "Verified" }]
-    },
-    {
-        id: 2,
-        name: "Divya Ramesh",
-        role: "Registered Nurse",
-        phone: "+91 98765 12345",
-        email: "divya.r@example.com",
-        service: "Medical Aid",
-        status: "Busy",
-        location: "Adyar",
-        workingAt: "Apollo Hospitals",
-        rating: 4.9,
-        tasksCompleted: 82, // Increased
-        verified: "Verified",
-        skills: ["Medical", "CPR", "BP Check", "Diabetes Care"],
-        joinedDate: "Feb 10, 2024",
-        lastSeen: "Online",
-        avatarColor: "bg-blue-100 text-blue-700",
-        bio: "Professional nurse willing to help with basic medical needs and checkups nearby Adyar.",
-        documents: [{ name: "Nursing License", status: "Verified" }, { name: "Aadhaar", status: "Verified" }]
-    },
-    {
-        id: 3,
-        name: "Arun Vijay",
-        role: "General Volunteer",
-        phone: "+91 98765 67890",
-        email: "arun.v@example.com",
-        service: "Groceries",
-        status: "Offline",
-        location: "T. Nagar",
-        workingAt: "Freelancer",
-        rating: 4.5,
-        tasksCompleted: 15,
-        verified: "Pending",
-        skills: ["Delivery", "Shopping"],
-        joinedDate: "Mar 05, 2024",
-        lastSeen: "1 hr ago",
-        avatarColor: "bg-amber-100 text-amber-700",
-        bio: "Can help with grocery shopping and errands in T. Nagar area.",
-        documents: [{ name: "ID Proof", status: "Pending" }]
-    },
-    {
-        id: 4,
-        name: "Priya Krishna",
-        role: "Companion",
-        phone: "+91 98765 98765",
-        email: "priya.k@example.com",
-        service: "Companionship",
-        status: "Available",
-        location: "Velachery",
-        workingAt: "Tech Mahindra",
-        rating: 5.0,
-        tasksCompleted: 28,
-        verified: "Verified",
-        skills: ["Listening", "Reading", "Chess", "Singing"],
-        joinedDate: "Jan 20, 2024",
-        lastSeen: "5 mins ago",
-        avatarColor: "bg-purple-100 text-purple-700",
-        bio: "Love spending time with elders, reading books, and playing board games. I am a patient listener.",
-        documents: [{ name: "ID Proof", status: "Verified" }]
-    },
-    {
-        id: 5,
-        name: "Karthik Raja",
-        role: "Emergency Responder",
-        phone: "+91 98765 54321",
-        email: "karthik.r@example.com",
-        service: "Emergency",
-        status: "Available",
-        location: "Mylapore",
-        workingAt: "Student, IIT Madras",
-        rating: 4.8,
-        tasksCompleted: 12,
-        verified: "Verified",
-        skills: ["First Aid", "CPR", "Running", "Swimming"],
-        joinedDate: "Apr 01, 2024",
-        lastSeen: "Online",
-        avatarColor: "bg-red-100 text-red-700",
-        bio: "Young and active student ready to help in emergency situations. Experienced in scout training.",
-        documents: [{ name: "Student ID", status: "Verified" }]
-    },
-    {
-        id: 6,
-        name: "Lakshmi Narayanan",
-        role: "Retired Teacher",
-        phone: "+91 91234 56789",
-        email: "lakshmi.n@example.com",
-        service: "Companionship",
-        status: "Available",
-        location: "Besant Nagar",
-        workingAt: "Retired",
-        rating: 4.9,
-        tasksCompleted: 60,
-        verified: "Verified",
-        skills: ["Teaching", "Reading", "Counseling"],
-        joinedDate: "Dec 12, 2023",
-        lastSeen: "10 mins ago",
-        avatarColor: "bg-indigo-100 text-indigo-700",
-        bio: "I love teaching and reading stories. Happy to spend time with others who need company.",
-        documents: [{ name: "Aadhaar", status: "Verified" }]
-    },
-    {
-        id: 7,
-        name: "Mohamed Riaz",
-        role: "Driver",
-        phone: "+91 99887 76655",
-        email: "riaz.m@example.com",
-        service: "Transport",
-        status: "Busy",
-        location: "Triplicane",
-        workingAt: "Uber Driver",
-        rating: 4.7,
-        tasksCompleted: 110,
-        verified: "Verified",
-        skills: ["Driving", "Car Maintenance", "Navigation"],
-        joinedDate: "Nov 05, 2023",
-        lastSeen: "Just now",
-        avatarColor: "bg-cyan-100 text-cyan-700",
-        bio: "Professional driver with own car. Available for hospital visits and emergency transport.",
-        documents: [{ name: "Driving License", status: "Verified" }, { name: "RC Book", status: "Verified" }]
-    },
-    {
-        id: 8,
-        name: "Sarah Joseph",
-        role: "Physiotherapist",
-        phone: "+91 90000 11111",
-        email: "sarah.j@example.com",
-        service: "Medical Aid",
-        status: "Offline",
-        location: "Nungambakkam",
-        workingAt: "Ortho Clinic",
-        rating: 5.0,
-        tasksCompleted: 40,
-        verified: "Verified",
-        skills: ["Physiotherapy", "Massage", "Rehab"],
-        joinedDate: "Feb 28, 2024",
-        lastSeen: "3 hrs ago",
-        avatarColor: "bg-pink-100 text-pink-700",
-        bio: "Certified physiotherapist. I can help with mobility exercises and post-surgery recovery.",
-        documents: [{ name: "Degree Cert", status: "Verified" }]
-    },
-    {
-        id: 9,
-        name: "Prem Kumar",
-        role: "Tech Support",
-        phone: "+91 95555 44444",
-        email: "prem.k@example.com",
-        service: "Technology",
-        status: "Available",
-        location: "OMR",
-        workingAt: "Infosys",
-        rating: 4.6,
-        tasksCompleted: 22,
-        verified: "Pending",
-        skills: ["Smartphone Help", "Computers", "Online Banking"],
-        joinedDate: "Mar 15, 2024",
-        lastSeen: "Online",
-        avatarColor: "bg-slate-100 text-slate-700",
-        bio: "I can help elders learn how to use smartphones, video calls, and digital payments.",
-        documents: [{ name: "ID Proof", status: "Pending" }]
-    },
-    {
-        id: 10,
-        name: "Anitha Paul",
-        role: "Home Maker",
-        phone: "+91 97777 88888",
-        email: "anitha.p@example.com",
-        service: "Cooking",
-        status: "Available",
-        location: "Kodambakkam",
-        workingAt: "Home Maker",
-        rating: 4.8,
-        tasksCompleted: 55,
-        verified: "Verified",
-        skills: ["Cooking", "Cleaning", "Gardening"],
-        joinedDate: "Jan 05, 2024",
-        lastSeen: "45 mins ago",
-        avatarColor: "bg-orange-100 text-orange-700",
-        bio: "I enjoy cooking healthy meals and gardening. Can prepare home-cooked food.",
-        documents: [{ name: "Aadhaar", status: "Verified" }]
-    },
-    {
-        id: 11,
-        name: "Rajesh Kannan",
-        role: "Pharmacy Runner",
-        phone: "+91 92222 33333",
-        email: "rajesh.k@example.com",
-        service: "Medicine",
-        status: "Available",
-        location: "Vadapalani",
-        workingAt: "College Student",
-        rating: 4.7,
-        tasksCompleted: 18,
-        verified: "Verified",
-        skills: ["Two-Wheeler", "Quick Delivery"],
-        joinedDate: "Apr 10, 2024",
-        lastSeen: "Online",
-        avatarColor: "bg-lime-100 text-lime-700",
-        bio: "Student looking to earn karma points. Can pick up medicines and small items.",
-        documents: [{ name: "Student ID", status: "Verified" }]
-    }
-];
 
 // --- Components ---
 
@@ -330,25 +48,68 @@ export default function VolunteerManagement() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'volunteers' | 'approvals' | 'issues'>('volunteers');
-    const [issues, setIssues] = useState(ISSUES);
+    
+    // State for fetched data
+    const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+    const [issues, setIssues] = useState<Issue[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch data from backend
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [volRes, issuesRes] = await Promise.all([
+                    api.get('/volunteers'),
+                    api.get('/issues')
+                ]);
+                
+                // Map MongoDB _id to id for compatibility with existing components
+                const mappedVolunteers = volRes.data.map((v: any) => ({ ...v, id: v._id }));
+                const mappedIssues = issuesRes.data.map((i: any) => ({ ...i, id: i._id }));
+                
+                setVolunteers(mappedVolunteers);
+                setIssues(mappedIssues);
+            } catch (error) {
+                console.error("Error fetching volunteer data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     // Calculate stats dynamic
-    const totalVolunteers = VOLUNTEERS.length;
-    const activeNow = VOLUNTEERS.filter(v => v.status === 'Available').length;
-    const pendingVerification = VOLUNTEERS.filter(v => v.verified === 'Pending').length;
+    const totalVolunteers = volunteers.length;
+    const activeNow = volunteers.filter(v => v.status === 'Available').length;
+    const pendingVerification = volunteers.filter(v => v.verified === 'Pending').length;
     const openIssues = issues.filter(i => i.status === 'Open').length;
 
     const filteredVolunteers = useMemo(() => {
-        return VOLUNTEERS.filter(v =>
+        return volunteers.filter(v =>
             v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             v.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
             v.location.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [searchTerm]);
+    }, [searchTerm, volunteers]);
 
-    const handleResolveIssue = (id: number) => {
-        setIssues(prev => prev.map(issue => issue.id === id ? { ...issue, status: 'Resolved' } : issue));
+    const handleResolveIssue = async (id: string | number) => {
+        try {
+            await api.patch(`/issues/${id}/resolve`);
+            setIssues(prev => prev.map(issue => issue.id === id ? { ...issue, status: 'Resolved' } : issue));
+        } catch (error) {
+            console.error("Error resolving issue:", error);
+        }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -562,7 +323,13 @@ export default function VolunteerManagement() {
             )}
 
             {isAddModalOpen && (
-                <AddVolunteerModal onClose={() => setIsAddModalOpen(false)} />
+                <AddVolunteerModal 
+                    onClose={() => setIsAddModalOpen(false)} 
+                    onSuccess={(newVol) => {
+                        setVolunteers(prev => [newVol, ...prev]);
+                        setIsAddModalOpen(false);
+                    }}
+                />
             )}
 
         </div>
@@ -701,7 +468,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function VolunteerDetailsModal({ volunteer, onClose }: { volunteer: Volunteer; onClose: () => void }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-end sm:justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-end sm:justify-center bg-black/20 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header */}
@@ -803,9 +570,54 @@ function VolunteerDetailsModal({ volunteer, onClose }: { volunteer: Volunteer; o
     );
 }
 
-function AddVolunteerModal({ onClose }: { onClose: () => void }) {
+function AddVolunteerModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (v: Volunteer) => void }) {
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        role: 'General Volunteer',
+        location: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        try {
+            setIsSubmitting(true);
+            const fullName = `${formData.firstName} ${formData.lastName}`;
+            
+            // Generate some defaults for fields not in the simple form
+            const newVolunteer = {
+                name: fullName,
+                role: formData.role,
+                phone: formData.phone,
+                email: formData.email,
+                location: formData.location,
+                status: 'Available',
+                service: formData.role === 'Driver' ? 'Transport' : 'General',
+                workingAt: 'Individual',
+                rating: 5.0,
+                tasksCompleted: 0,
+                verified: 'Pending',
+                skills: [formData.role],
+                joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                lastSeen: 'Just now',
+                avatarColor: 'bg-slate-100 text-slate-700',
+                bio: `New volunteer joined from ${formData.location}`,
+                documents: []
+            };
+
+            const response = await api.post('/volunteers', newVolunteer);
+            onSuccess({ ...response.data, id: response.data._id });
+        } catch (error) {
+            console.error("Error adding volunteer:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col">
                 <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <h2 className="text-lg font-bold text-slate-800">Add New Volunteer</h2>
@@ -816,27 +628,51 @@ function AddVolunteerModal({ onClose }: { onClose: () => void }) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">First Name</label>
-                            <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="John" />
+                            <input 
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                                placeholder="John" 
+                                value={formData.firstName}
+                                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                            />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-600">Last Name</label>
-                            <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Doe" />
+                            <input 
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                                placeholder="Doe" 
+                                value={formData.lastName}
+                                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600">Email Address</label>
-                        <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="john@example.com" />
+                        <input 
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                            placeholder="john@example.com" 
+                            value={formData.email}
+                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        />
                     </div>
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600">Phone Number</label>
-                        <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="+91 98765 43210" />
+                        <input 
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                            placeholder="+91 98765 43210" 
+                            value={formData.phone}
+                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        />
                     </div>
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600">Role / Designation</label>
-                        <select className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                        <select 
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                            value={formData.role}
+                            onChange={(e) => setFormData({...formData, role: e.target.value})}
+                        >
                             <option>General Volunteer</option>
                             <option>Medical Assistant</option>
                             <option>Driver</option>
@@ -846,13 +682,35 @@ function AddVolunteerModal({ onClose }: { onClose: () => void }) {
 
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600">Location</label>
-                        <input className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="e.g. Anna Nagar" />
+                        <input 
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                            placeholder="e.g. Anna Nagar" 
+                            value={formData.location}
+                            onChange={(e) => setFormData({...formData, location: e.target.value})}
+                        />
                     </div>
                 </div>
 
                 <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-                    <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 font-medium text-sm">Cancel</button>
-                    <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm shadow-sm">Save Volunteer</button>
+                    <button 
+                        onClick={onClose} 
+                        className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 font-medium text-sm"
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSubmit}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm shadow-sm flex items-center gap-2"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Saving...
+                            </>
+                        ) : 'Save Volunteer'}
+                    </button>
                 </div>
             </div>
         </div>

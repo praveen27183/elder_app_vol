@@ -232,7 +232,7 @@ export default function VolunteerRequests() {
 
                 {/* Emergency Checklist Modal */}
                 {showChecklist && activeTask && (
-                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999]">
                         <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200 max-h-[80vh] overflow-y-auto">
                             <div className="p-6">
                                 <div className="flex justify-between items-center mb-4">

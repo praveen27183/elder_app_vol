@@ -467,7 +467,7 @@ export default function ElderHome() {
 
             {/* Enhanced Booking Popup */}
             {selectedService && !showItems && !showTerms && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999]">
                     <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center shadow-2xl border-2 border-gray-100">
                         <h2 className="text-3xl font-bold mb-4 text-gray-800">
                             {t.bookService} {selectedService}
@@ -499,7 +499,7 @@ export default function ElderHome() {
           
             {/* Terms and Conditions Modal */}
             {showTerms && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999]">
                     <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl border-2 border-gray-100 max-h-[80vh] overflow-y-auto">
                         <h2 className="text-2xl font-bold mb-4 text-gray-800">
                             {t.terms} - {selectedService}
@@ -604,7 +604,7 @@ export default function ElderHome() {
 
             {/* Tracking Modal (shows MockMap) */}
             {showTracking && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999]">
                     <div className="bg-white w-full max-w-3xl rounded-3xl p-6 shadow-2xl border-2 border-gray-100 h-[70vh] flex flex-col">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-2xl font-bold">Volunteer Tracking</h2>

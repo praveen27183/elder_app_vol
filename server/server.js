@@ -1,45 +1,61 @@
 import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
+import cors from "cors";
+import { connectDB } from "./config/db.js";
 
-import "./db/connection.js";
-import auth from "./routes/auth.js";
-import volunteers from "./routes/volunteer.js";
+// Route Imports
+import authRoutes from "./routes/auth.js";
+import elderRoutes from "./routes/elders.js";
+import volunteerRoutes from "./routes/volunteers.js";
+import issueRoutes from "./routes/issues.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load ENV
-dotenv.config({ path: path.resolve(__dirname, "../config.env") });
+// Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5050;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Routes
-app.use("/auth", auth);
-app.use("/volunteer", volunteers);
+// Connect to Database
+connectDB();
 
-// Home Route
-app.get("/", (req, res) => {
-  res.send("Volunteer API Running Successfully");
+// Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
-// Error Handling
+// Route Mounting
+console.log("🚀 Registering modular routes...");
+app.use("/api/auth", authRoutes);
+app.use("/api/elders", elderRoutes);
+app.use("/api/volunteers", volunteerRoutes);
+app.use("/api/issues", issueRoutes);
+
+// 404 Handler for missing API routes
+app.use("/api", (req, res) => {
+  console.log(`❌ 404: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ message: `API Endpoint ${req.originalUrl} not found` });
+});
+
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("🔥 Server Error:", err.stack);
   res.status(500).json({
-    success: false,
-    message: "Something broke!"
+    status: "error",
+    message: "Internal Server Error",
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-// Start Server
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🔗 API Base: http://localhost:${PORT}/api`);
 });

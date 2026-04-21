@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
       {/* EDIT MODAL - PREMIUM FULL SCREEN OR CENTERED */}
       {isEditing && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-6 animate-fade-in">
           <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scale-up border border-white">
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-primary-100 rounded-2xl text-primary-600">
