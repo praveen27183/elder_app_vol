@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "../../../services/api";
 import {
   MapContainer,
   TileLayer,
@@ -41,7 +42,7 @@ L.Icon.Default.mergeOptions({
    TYPES
 -----------------------------*/
 interface Job {
-  id: number;
+  id: string | number;
   type: string;
   elder: string;
   age: number;
@@ -58,7 +59,7 @@ interface Job {
 }
 
 interface Volunteer {
-  id: number;
+  id: string | number;
   name: string;
   zone: string;
   distance: string;
@@ -173,9 +174,67 @@ import LeafletMap, { type MapMarker } from "../../../components/shared/LeafletMa
 -----------------------------*/
 export default function JobAssignment() {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>(mockVolunteers);
+  const [selectedJobId, setSelectedJobId] = useState<number | string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJobsAndVolunteers = async () => {
+      try {
+        setLoading(true);
+        const [tasksRes, volsRes] = await Promise.all([
+          api.get("/tasks/all"),
+          api.get("/volunteers")
+        ]);
+        
+        const fetchedTasks = tasksRes.data.data.tasks.map((t: any) => ({
+          id: t._id,
+          type: t.title || "Request",
+          elder: t.elderName || "Elder",
+          age: 75,
+          language: "Tamil",
+          condition: t.description || "",
+          loc: "Chennai",
+          zone: "Chennai",
+          time: new Date(t.createdAt).toLocaleTimeString(),
+          status: t.status === "pending" ? "Unassigned" : t.status === "accepted" ? "Assigned" : "In Progress",
+          priority: t.urgency || "normal",
+          volunteer: t.volunteerName,
+          lat: 13.0827 + (Math.random() - 0.5) * 0.1,
+          lng: 80.2707 + (Math.random() - 0.5) * 0.1,
+        }));
+
+        const fetchedVols = volsRes.data.map((v: any) => ({
+          id: v._id,
+          name: v.name,
+          zone: v.location || "Chennai",
+          distance: "1 km",
+          status: v.status === "Available" ? "Available" : "Busy",
+          rating: v.rating || 4.5,
+          lat: 13.0827 + (Math.random() - 0.5) * 0.1,
+          lng: 80.2707 + (Math.random() - 0.5) * 0.1,
+        }));
+
+        setJobs(fetchedTasks.length > 0 ? fetchedTasks : initialJobs);
+        setVolunteers(fetchedVols.length > 0 ? fetchedVols : mockVolunteers);
+
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        setJobs(initialJobs);
+        setVolunteers(mockVolunteers);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobsAndVolunteers();
+  }, []);
 
   const activeJob = jobs.find((j) => j.id === selectedJobId);
+
+  const getNearbyVolunteers = (zone: string) => {
+    return volunteers.filter(v => v.status === "Available"); // Relaxed zone matching for mock data fallback
+  };
 
   // Prepare markers for the map
   const markers: MapMarker[] = [
@@ -185,7 +244,7 @@ export default function JobAssignment() {
       type: 'elder' as const,
       name: job.elder
     })),
-    ...mockVolunteers.map(vol => ({
+    ...volunteers.map(vol => ({
       id: `vol-${vol.id}`,
       position: [vol.lat, vol.lng] as [number, number],
       type: 'volunteer' as const,
@@ -193,8 +252,8 @@ export default function JobAssignment() {
     }))
   ];
 
-  const handleAutoAssign = (jobId: number, zone: string) => {
-    const nearby = mockVolunteers.filter(v => v.zone === zone && v.status === "Available");
+  const handleAutoAssign = (jobId: string | number, zone: string) => {
+    const nearby = getNearbyVolunteers(zone);
 
     if (!nearby.length) return;
 

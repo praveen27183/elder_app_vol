@@ -8,6 +8,8 @@ import authRoutes from "./routes/auth.js";
 import elderRoutes from "./routes/elders.js";
 import volunteerRoutes from "./routes/volunteers.js";
 import issueRoutes from "./routes/issues.js";
+import taskRoutes from "./routes/tasks.js";
+import ticketRoutes from "./routes/tickets.js";
 
 // Load environment variables
 dotenv.config();
@@ -38,6 +40,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/elders", elderRoutes);
 app.use("/api/volunteers", volunteerRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/tickets", ticketRoutes);
 
 // 404 Handler for missing API routes
 app.use("/api", (req, res) => {

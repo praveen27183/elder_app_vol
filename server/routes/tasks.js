@@ -1,7 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { connectToDatabase, toObjectId } from '../utils/db.js';
+import mongoose from 'mongoose';
 
+const toObjectId = (id) => new mongoose.Types.ObjectId(id);
 const router = express.Router();
 
 // Middleware to authenticate user
@@ -19,7 +20,7 @@ const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
     
     // Connect to database
-    const { db } = await connectToDatabase();
+    const db = mongoose.connection.db;
     
     // Find user
     const user = await db.collection('users').findOne({ _id: toObjectId(decoded.id) });
@@ -112,6 +113,58 @@ router.post('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error creating task',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @desc    Get all tasks (Admin only)
+// @route   GET /api/tasks/all
+// @access  Private (Admin only)
+router.get('/all', async (req, res) => {
+  try {
+    const user = req.user;
+    const db = req.db;
+
+    // Check if user is an admin
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can view all tasks'
+      });
+    }
+
+    // Find all tasks
+    const tasks = await db.collection('tasks')
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        tasks: tasks.map(task => ({
+          _id: task._id,
+          elderId: task.elderId,
+          elderName: task.elderName,
+          title: task.title,
+          description: task.description,
+          urgency: task.urgency,
+          status: task.status,
+          volunteerId: task.volunteerId,
+          volunteerName: task.volunteerName,
+          acceptedAt: task.acceptedAt,
+          createdAt: task.createdAt,
+          updatedAt: task.updatedAt
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all tasks error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching all tasks',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

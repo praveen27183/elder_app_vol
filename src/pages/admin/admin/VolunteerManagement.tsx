@@ -48,6 +48,7 @@ export default function VolunteerManagement() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'volunteers' | 'approvals' | 'issues'>('volunteers');
+    const [filterStatus, setFilterStatus] = useState<'All' | 'Available' | 'Busy' | 'Offline' | 'Pending'>('All');
     
     // State for fetched data
     const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -87,12 +88,17 @@ export default function VolunteerManagement() {
     const openIssues = issues.filter(i => i.status === 'Open').length;
 
     const filteredVolunteers = useMemo(() => {
-        return volunteers.filter(v =>
-            v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            v.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            v.location.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [searchTerm, volunteers]);
+        return volunteers.filter(v => {
+            const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                v.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                v.location.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesStatus = filterStatus === 'All' 
+                || (filterStatus === 'Pending' ? v.verified === 'Pending' : v.status === filterStatus);
+            
+            return matchesSearch && matchesStatus;
+        });
+    }, [searchTerm, volunteers, filterStatus]);
 
     const handleResolveIssue = async (id: string | number) => {
         try {
@@ -219,8 +225,14 @@ export default function VolunteerManagement() {
                                     <List className="w-4 h-4" />
                                 </button>
                             </div>
-                            <button className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors border border-slate-200">
-                                <Filter className="w-4 h-4" /> Filter
+                            <button 
+                                onClick={() => {
+                                    const nextMap: any = { 'All': 'Available', 'Available': 'Busy', 'Busy': 'Offline', 'Offline': 'Pending', 'Pending': 'All' };
+                                    setFilterStatus(nextMap[filterStatus]);
+                                }}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${filterStatus !== 'All' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}>
+                                <Filter className="w-4 h-4" /> 
+                                {filterStatus === 'All' ? 'Filter' : filterStatus}
                             </button>
                         </div>
                     </div>
@@ -251,7 +263,12 @@ export default function VolunteerManagement() {
                     <p className="text-slate-500 text-sm max-w-sm text-center mt-2">
                         There are {pendingVerification} volunteers waiting for document verification. Review their documents to approve them.
                     </p>
-                    <button className="mt-6 px-5 py-2 bg-slate-900 text-white rounded-lg font-medium shadow hover:bg-slate-800">
+                    <button 
+                        onClick={() => {
+                            setActiveTab('volunteers');
+                            setFilterStatus('Pending');
+                        }}
+                        className="mt-6 px-5 py-2 bg-slate-900 text-white rounded-lg font-medium shadow hover:bg-slate-800">
                         Review Documents
                     </button>
                 </div>
@@ -294,10 +311,28 @@ export default function VolunteerManagement() {
                             <div className="flex items-center gap-2 md:self-center self-end">
                                 {issue.status === 'Open' ? (
                                     <>
-                                        <button className="px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg flex items-center gap-1">
+                                        <button 
+                                            onClick={() => {
+                                                const vol = volunteers.find(v => v.id === issue.volunteerId || v.name === issue.volunteerName);
+                                                if (vol) window.location.href = `mailto:${vol.email}`;
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg flex items-center gap-1">
                                             Contact
                                         </button>
-                                        <button className="px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg flex items-center gap-1">
+                                        <button 
+                                            onClick={async () => {
+                                                try {
+                                                    const vol = volunteers.find(v => v.id === issue.volunteerId || v.name === issue.volunteerName);
+                                                    if (vol) {
+                                                        await api.patch(`/volunteers/${vol.id}`, { status: 'Offline' });
+                                                        setVolunteers(prev => prev.map(v => v.id === vol.id ? { ...v, status: 'Offline' } : v));
+                                                    }
+                                                    await handleResolveIssue(issue.id);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                }
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 rounded-lg flex items-center gap-1">
                                             <XCircle className="w-3 h-3" /> Suspend
                                         </button>
                                         <button
@@ -563,7 +598,7 @@ function VolunteerDetailsModal({ volunteer, onClose }: { volunteer: Volunteer; o
 
                 <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
                     <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 font-medium">Close</button>
-                    <button className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-sm">Assign Task</button>
+                    <button onClick={() => window.location.href = '/admin/jobs'} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-sm">Assign Task</button>
                 </div>
             </div>
         </div>

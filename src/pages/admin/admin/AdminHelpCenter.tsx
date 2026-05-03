@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import api from '../../../services/api';
 import {
     MessageSquare, Phone, CheckCircle, Clock, Search, Filter, User, AlertTriangle, Download,
     Reply, AlertOctagon, Shield
@@ -6,7 +7,7 @@ import {
 
 // --- Types ---
 type Ticket = {
-    id: number;
+    id: string | number;
     user: string;
     role: 'Elder' | 'Volunteer'; // Who raised it
     type: 'App Issue' | 'Payment' | 'General' | 'Emergency';
@@ -19,109 +20,41 @@ type Ticket = {
 };
 
 // --- Mock Data ---
-const TICKETS: Ticket[] = [
-    {
-        id: 1,
-        user: 'Rukmini Amma',
-        role: 'Elder',
-        type: 'App Issue',
-        subject: 'Voice command not working',
-        description: "I am trying to use the voice feature to request medicine but it doesn't respond.",
-        status: 'Open',
-        priority: 'High',
-        time: '10 mins ago',
-        avatarColor: 'bg-rose-100 text-rose-700'
-    },
-    {
-        id: 2,
-        user: 'David Raj',
-        role: 'Volunteer',
-        type: 'Payment',
-        subject: 'Payment not received for Task #1023',
-        description: "Completed the grocery run yesterday but wallet balance hasn't updated.",
-        status: 'Open',
-        priority: 'Medium',
-        time: '1 hour ago',
-        avatarColor: 'bg-blue-100 text-blue-700'
-    },
-    {
-        id: 3,
-        user: 'Narayanan S',
-        role: 'Elder',
-        type: 'General',
-        subject: 'How to change language?',
-        description: "My app is in English, I want to switch to Tamil.",
-        status: 'Resolved',
-        priority: 'Low',
-        time: 'Yesterday',
-        avatarColor: 'bg-emerald-100 text-emerald-700'
-    },
-    {
-        id: 4,
-        user: 'Priya K',
-        role: 'Volunteer',
-        type: 'Emergency',
-        subject: 'Incorrect Location on Map',
-        description: "The location for Mrs. Lakshmi's house is showing 2km away from actual spot.",
-        status: 'Pending',
-        priority: 'High',
-        time: '2 hours ago',
-        avatarColor: 'bg-purple-100 text-purple-700'
-    },
-    {
-        id: 5,
-        user: 'Lakshmi Mom',
-        role: 'Elder',
-        type: 'General',
-        subject: 'Volunteer was very kind',
-        description: "Just wanted to appreciate Senthil for his help today.",
-        status: 'Resolved',
-        priority: 'Low',
-        time: '2 days ago',
-        avatarColor: 'bg-amber-100 text-amber-700'
-    },
-    {
-        id: 6,
-        user: 'Karthik R',
-        role: 'Volunteer',
-        type: 'App Issue',
-        subject: 'Cannot upload document',
-        description: "Upload button is disabled for my driving license.",
-        status: 'Open',
-        priority: 'Medium',
-        time: '3 hours ago',
-        avatarColor: 'bg-cyan-100 text-cyan-700'
-    },
-    {
-        id: 7,
-        user: 'System Bot',
-        role: 'Volunteer',
-        type: 'General',
-        subject: 'Automated Flag: Late Arrival',
-        description: "Volunteer marked arrived 30 mins after ETA.",
-        status: 'Resolved',
-        priority: 'Low',
-        time: '1 week ago',
-        avatarColor: 'bg-slate-100 text-slate-700'
-    },
-    {
-        id: 8,
-        user: 'Sarah J',
-        role: 'Elder',
-        type: 'Payment',
-        subject: 'Refund Request',
-        description: "I was charged twice for the last medical transport.",
-        status: 'Open',
-        priority: 'High',
-        time: '5 hours ago',
-        avatarColor: 'bg-indigo-100 text-indigo-700'
-    }
-];
+
 
 export default function AdminHelpCenter() {
-    const [tickets, setTickets] = useState(TICKETS);
+    const [tickets, setTickets] = useState<Ticket[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | Ticket['status']>('All');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            try {
+                setLoading(true);
+                // Fetch from issues endpoint to resolve the 404 and reuse existing issue data
+                const res = await api.get('/issues');
+                const fetched = res.data.map((i: any) => ({
+                    id: i._id,
+                    user: i.reportedBy || 'System',
+                    role: 'Elder', // Defaulting role
+                    type: i.type || 'General',
+                    subject: `Report on ${i.volunteerName}`,
+                    description: i.description,
+                    status: i.status === 'Resolved' ? 'Resolved' : 'Open',
+                    priority: i.severity === 'Critical' ? 'High' : (i.severity || 'Medium'),
+                    time: i.date || 'Recently',
+                    avatarColor: 'bg-indigo-100 text-indigo-700'
+                }));
+                setTickets(fetched);
+            } catch (err) {
+                console.error("Failed to fetch tickets", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTickets();
+    }, []);
 
     // Stats calculation
     const totalTickets = tickets.length;
@@ -138,8 +71,15 @@ export default function AdminHelpCenter() {
         });
     }, [tickets, searchTerm, statusFilter]);
 
-    const handleResolve = (id: number) => {
-        setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+    const handleResolve = async (id: string | number) => {
+        try {
+            await api.patch(`/issues/${id}/resolve`);
+            setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+        } catch (err) {
+            console.error("Failed to resolve ticket", err);
+            // Optimistic update for mock data fallback
+            setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+        }
     };
 
     return (

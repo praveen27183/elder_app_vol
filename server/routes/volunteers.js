@@ -28,4 +28,20 @@ router.post("/", async (req, res) => {
     }
 });
 
+/**
+ * @route   PATCH /api/volunteers/:id
+ */
+router.patch("/:id", async (req, res) => {
+    try {
+        const volunteer = await Volunteer.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+        res.json(volunteer);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 export default router;

@@ -9,10 +9,10 @@ export default function AdminLayout() {
         <div className="min-h-screen bg-slate-50 flex">
             {/* Sidebar */}
             <aside className="w-64 bg-slate-900 text-white hidden md:flex flex-col">
-                <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-                    <img src="/images/logo.png" alt="ElderlyCare Logo" className="w-12 h-12 object-contain bg-white rounded-lg p-1" />
+                <div className="p-6 border-b border-slate-800 flex flex-col items-center text-center gap-3">
+                    <img src="/logo.png" alt="ElderlyCare Logo" className="w-32 h-32 object-contain bg-white rounded-xl shadow-md p-0" />
                     <div>
-                        <h1 className="text-xl font-bold text-white tracking-tight">ElderlyCare</h1>
+                        <h1 className="text-xl font-bold text-white tracking-tight">ElderEase</h1>
                         <p className="text-xs text-slate-400 font-medium">Admin Console</p>
                     </div>
                 </div>

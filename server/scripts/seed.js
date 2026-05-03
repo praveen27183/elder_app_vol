@@ -4,6 +4,7 @@ import dns from "dns";
 import Volunteer from "../models/Volunteer.js";
 import Issue from "../models/Issue.js";
 import User from "../models/User.js";
+import Ticket from "../models/Ticket.js";
 import { connectDB } from "../config/db.js";
 
 // Fix for ECONNREFUSED with SRV records
@@ -173,6 +174,97 @@ const USERS = [
   }
 ];
 
+const TICKETS = [
+    {
+        user: 'Rukmini Amma',
+        role: 'Elder',
+        type: 'App Issue',
+        subject: 'Voice command not working',
+        description: "I am trying to use the voice feature to request medicine but it doesn't respond.",
+        status: 'Open',
+        priority: 'High',
+        time: '10 mins ago',
+        avatarColor: 'bg-rose-100 text-rose-700'
+    },
+    {
+        user: 'David Raj',
+        role: 'Volunteer',
+        type: 'Payment',
+        subject: 'Payment not received for Task #1023',
+        description: "Completed the grocery run yesterday but wallet balance hasn't updated.",
+        status: 'Open',
+        priority: 'Medium',
+        time: '1 hour ago',
+        avatarColor: 'bg-blue-100 text-blue-700'
+    },
+    {
+        user: 'Narayanan S',
+        role: 'Elder',
+        type: 'General',
+        subject: 'How to change language?',
+        description: "My app is in English, I want to switch to Tamil.",
+        status: 'Resolved',
+        priority: 'Low',
+        time: 'Yesterday',
+        avatarColor: 'bg-emerald-100 text-emerald-700'
+    },
+    {
+        user: 'Priya K',
+        role: 'Volunteer',
+        type: 'Emergency',
+        subject: 'Incorrect Location on Map',
+        description: "The location for Mrs. Lakshmi's house is showing 2km away from actual spot.",
+        status: 'Pending',
+        priority: 'High',
+        time: '2 hours ago',
+        avatarColor: 'bg-purple-100 text-purple-700'
+    },
+    {
+        user: 'Lakshmi Mom',
+        role: 'Elder',
+        type: 'General',
+        subject: 'Volunteer was very kind',
+        description: "Just wanted to appreciate Senthil for his help today.",
+        status: 'Resolved',
+        priority: 'Low',
+        time: '2 days ago',
+        avatarColor: 'bg-amber-100 text-amber-700'
+    },
+    {
+        user: 'Karthik R',
+        role: 'Volunteer',
+        type: 'App Issue',
+        subject: 'Cannot upload document',
+        description: "Upload button is disabled for my driving license.",
+        status: 'Open',
+        priority: 'Medium',
+        time: '3 hours ago',
+        avatarColor: 'bg-cyan-100 text-cyan-700'
+    },
+    {
+        user: 'System Bot',
+        role: 'System',
+        type: 'General',
+        subject: 'Automated Flag: Late Arrival',
+        description: "Volunteer marked arrived 30 mins after ETA.",
+        status: 'Resolved',
+        priority: 'Low',
+        time: '1 week ago',
+        avatarColor: 'bg-slate-100 text-slate-700'
+    },
+    {
+        user: 'Sarah J',
+        role: 'Elder',
+        type: 'Payment',
+        subject: 'Refund Request',
+        description: "I was charged twice for the last medical transport.",
+        status: 'Open',
+        priority: 'High',
+        time: '5 hours ago',
+        avatarColor: 'bg-indigo-100 text-indigo-700'
+    }
+];
+
 const seedData = async () => {
   try {
     console.log("Connecting to MongoDB...");
@@ -183,6 +275,7 @@ const seedData = async () => {
     await Volunteer.deleteMany({});
     await Issue.deleteMany({});
     await User.deleteMany({});
+    await Ticket.deleteMany({});
 
     console.log("🧹 Database cleared.");
 
@@ -193,6 +286,10 @@ const seedData = async () => {
     // Insert Issues
     await Issue.insertMany(ISSUES);
     console.log(`✅ ${ISSUES.length} Issues seeded.`);
+
+    // Insert Tickets
+    await Ticket.insertMany(TICKETS);
+    console.log(`✅ ${TICKETS.length} Tickets seeded.`);
 
     // Insert Users
     // Note: User model has a pre-save hook for password hashing, 
